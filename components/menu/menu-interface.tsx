@@ -26,7 +26,7 @@ interface Category {
   description: string | null
 }
 
-interface MenuItem {
+export interface MenuItem {
   id: string
   name: string
   description: string | null
@@ -37,6 +37,14 @@ interface MenuItem {
   allergens: string[] | null
   preparation_time: number | null
   menu_categories: { name: string } | null
+  // New nutrition fields
+  calories: number | null
+  protein: number | null
+  carbs: number | null
+  fat: number | null
+  fiber: number | null
+  sugar: number | null
+  sodium: number | null
 }
 
 interface CartItem {
@@ -169,6 +177,7 @@ export function MenuInterface({ restaurant, categories, menuItems, tableNumber }
             categories={categories}
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
+            loading={false} // Pass loading prop
           />
         )}
 
@@ -180,7 +189,7 @@ export function MenuInterface({ restaurant, categories, menuItems, tableNumber }
         />
 
         {cart.length > 0 && (
-          <div className="fixed bottom-6 right-6 z-40">
+          <div className="fixed bottom-20 right-6 z-40">
             <Button
               onClick={() => setIsCartOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 rounded-full h-14 w-14 shadow-lg relative"

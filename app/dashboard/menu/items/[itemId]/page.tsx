@@ -77,7 +77,6 @@ export default function NewMenuItemPage({ params }: NewMenuItemPageProps) {
   const unwrappedParams = use(params) // 👈 unwrap the Promise
   const itemId = unwrappedParams?.itemId
   const isEditing = !!itemId
-  console.log("Item ID from params:", itemId)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -127,7 +126,6 @@ export default function NewMenuItemPage({ params }: NewMenuItemPageProps) {
       if (error) throw error;
 
       if (menuItem) {
-        console.log("Fetched MenuItem:", menuItem);
         setFormData({
           id: menuItem.id,
           name: menuItem.name,
@@ -213,8 +211,6 @@ export default function NewMenuItemPage({ params }: NewMenuItemPageProps) {
         : [...prev.dietary_info, option],
     }));
   };
-  console.log("Dietary Info:", formData.dietary_info);
-  console.log("Category ID:", formData, "Loading...", loading);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">

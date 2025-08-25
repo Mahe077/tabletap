@@ -1,6 +1,8 @@
 
 "use client"
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, UtensilsCrossed } from "lucide-react";
@@ -18,10 +20,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { deleteMenuItem } from "@/app/dashboard/menu/actions";
-import { useState } from "react";
 
 export function MenuItems({ menuItems }: { menuItems: any[] }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async (itemId: string) => {
@@ -32,6 +34,7 @@ export function MenuItems({ menuItems }: { menuItems: any[] }) {
         title: "Success",
         description: "Menu item deleted successfully.",
       });
+      router.refresh();
     } else {
       toast({
         title: "Error",

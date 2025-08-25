@@ -3,13 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, UtensilsCrossed } from "lucide-react";
+import Link from "next/link";
 
 export function MenuCategories({ categories }: { categories: any[] }) {
   return (
     <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>Menu Categories</CardTitle>
-        <CardDescription>Organize your menu items into categories</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle className="text-2xl font-bold">Menu Categories</CardTitle>
+          <CardDescription>Organize your menu items into categories</CardDescription>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/menu/categories">
+            Manage Categories
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent>
         {categories && categories.length > 0 ? (
@@ -24,9 +32,11 @@ export function MenuCategories({ categories }: { categories: any[] }) {
                 </div>
                 {category.description && <p className="text-sm text-gray-600 mb-3">{category.description}</p>}
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    <Edit className="h-3 w-3" />
-                  </Button>
+                  <Link href={`/dashboard/menu/categories/${category.id}`}>
+                    <Button size="sm" variant="outline">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Button size="sm" variant="outline">
                     <Trash2 className="h-3 w-3" />
                   </Button>

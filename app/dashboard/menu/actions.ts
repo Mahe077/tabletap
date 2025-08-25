@@ -1,4 +1,3 @@
-
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
@@ -117,13 +116,14 @@ export async function saveMenuItem(data: SaveMenuItemData) {
     }
 
     if (error) {
-      console.error('Error saving menu item:', error);
+      console.error(`saveMenuItem: Error ${id ? 'updating' : 'inserting'} menu item (ID: ${id || 'new'}):`, error);
       throw new Error(`Failed to save menu item: ${error.message}`);
     }
 
     revalidateTag(`menu-data-${restaurant.id}`);
     return { success: true };
   } catch (e) {
+    console.error(`saveMenuItem: Unexpected error (ID: ${id || 'new'}):`, e);
     return { success: false, error: (e as Error).message };
   }
 }
@@ -146,6 +146,94 @@ export async function deleteMenuItem(itemId: string) {
     if (error) {
       console.error('Error deleting menu item:', error);
       throw new Error(`Failed to delete menu item: ${error.message}`);
+    }
+
+    revalidateTag(`menu-data-${restaurant.id}`);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+interface SaveMenuCategoryData {
+  id?: string; // Optional for new categories
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  display_order: number;
+}
+
+export async function saveMenuCategory(data: SaveMenuCategoryData) {
+  const supabase = await createClient();
+
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data: restaurant } = await supabase.from('restaurants').select('id').eq('owner_id', user.user.id).single();
+  if (!restaurant) {
+    throw new Error('Restaurant not found');
+  }
+
+  const { id, ...categoryData } = data;
+
+  try {
+    let error = null;
+    if (id) {
+      // Update existing category
+      const { error: updateError } = await supabase.from('menu_categories').update(categoryData).eq('id', id);
+      error = updateError;
+    } else {
+      // Insert new category
+      const { data: lastCategory } = await supabase
+        .from('menu_categories')
+        .select('display_order')
+        .eq('restaurant_id', restaurant.id)
+        .order('display_order', { ascending: false })
+        .limit(1)
+        .single();
+
+      const nextDisplayOrder = lastCategory ? lastCategory.display_order + 1 : 1;
+
+      const { error: insertError } = await supabase.from('menu_categories').insert({
+        ...categoryData,
+        restaurant_id: restaurant.id,
+        display_order: nextDisplayOrder,
+      });
+      error = insertError;
+    }
+
+    if (error) {
+      console.error('Error saving menu category:', error);
+      throw new Error(`Failed to save menu category: ${error.message}`);
+    }
+
+    revalidateTag(`menu-data-${restaurant.id}`);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function deleteMenuCategory(categoryId: string) {
+  const supabase = await createClient();
+
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data: restaurant } = await supabase.from('restaurants').select('id').eq('owner_id', user.user.id).single();
+  if (!restaurant) {
+    throw new Error('Restaurant not found');
+  }
+
+  try {
+    const { error } = await supabase.from('menu_categories').delete().eq('id', categoryId).eq('restaurant_id', restaurant.id);
+    if (error) {
+      console.error('Error deleting menu category:', error);
+      throw new Error(`Failed to delete menu category: ${error.message}`);
     }
 
     revalidateTag(`menu-data-${restaurant.id}`);
