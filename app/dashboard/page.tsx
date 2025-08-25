@@ -1,26 +1,30 @@
-import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { UtensilsCrossed, ShoppingBag, TrendingUp, Users, Plus, QrCode, Settings } from "lucide-react"
+import { createClient } from "@/lib/supabase/server";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { UtensilsCrossed, ShoppingBag, QrCode, Settings, Plus } from "lucide-react";
+import { Suspense } from "react";
+import { DashboardStats } from "@/components/dashboard/dashboard-stats";
+import { DashboardStatsSkeleton } from "@/components/dashboard/dashboard-stats-skeleton";
+import { RecentOrders } from "@/components/dashboard/recent-orders";
+import { RecentOrdersSkeleton } from "@/components/dashboard/recent-orders-skeleton";
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  // Get user's restaurant
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, owner_id")
+    .select("id, name")
     .eq("owner_id", user.id)
-    .single()
+    .single();
 
   if (!restaurant) {
     return (
@@ -46,67 +50,8 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
-
-  const [{ count: menuItemsCount }, { count: ordersCount }, { count: todayOrdersCount }, { data: recentOrders }] =
-    await Promise.all([
-      supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurant.id),
-      supabase.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurant.id),
-      supabase
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("restaurant_id", restaurant.id)
-        .gte("created_at", new Date().toISOString().split("T")[0]),
-      supabase
-        .from("orders")
-        .select(`
-        id,
-        total_amount,
-        status,
-        table_number,
-        created_at,
-        customers!inner (name, phone)
-      `)
-        .eq("restaurant_id", restaurant.id)
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ])
-
-  const stats = [
-    {
-      title: "Menu Items",
-      value: menuItemsCount || 0,
-      description: "Active menu items",
-      icon: UtensilsCrossed,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
-    },
-    {
-      title: "Total Orders",
-      value: ordersCount || 0,
-      description: "All time orders",
-      icon: ShoppingBag,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-    },
-    {
-      title: "Today's Orders",
-      value: todayOrdersCount || 0,
-      description: "Orders today",
-      icon: TrendingUp,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-    },
-    {
-      title: "Customers",
-      value: "0", // We'll implement this later
-      description: "Registered customers",
-      icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
-    },
-  ]
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -115,66 +60,15 @@ export default async function DashboardPage() {
         <p className="text-gray-600 mt-2">Here's what's happening with your restaurant today.</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
-                  </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+      <Suspense fallback={<DashboardStatsSkeleton />}>
+        <DashboardStats restaurantId={restaurant.id} />
+      </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Orders */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest orders from your customers</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentOrders && recentOrders.length > 0 ? (
-              <div className="space-y-4">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
-                      <p className="text-sm text-gray-600">
-                        {order.customers?.name || "Guest"} • Table {order.table_number}
-                      </p>
-                      <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">Rs. {order.total_amount}</p>
-                      <span className={`order-status-badge order-status-${order.status}`}>{order.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No orders yet</p>
-                <p className="text-sm">Orders will appear here once customers start ordering</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Suspense fallback={<RecentOrdersSkeleton />}>
+          <RecentOrders restaurantId={restaurant.id} />
+        </Suspense>
 
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -209,5 +103,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

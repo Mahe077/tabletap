@@ -50,7 +50,7 @@ export default async function MenuPage({ params, searchParams }: MenuPageProps) 
       restaurant={restaurant}
       categories={categories || []}
       menuItems={menuItems || []}
-      tableNumber={searchParams.table || "1"}
+      tableNumber={searchParams.table ? searchParams.table : "1"}
     />
   )
 }

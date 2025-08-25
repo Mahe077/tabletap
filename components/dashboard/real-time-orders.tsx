@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ShoppingBag, Clock, CheckCircle, XCircle, Bell } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Restaurant {
   id: string
@@ -44,6 +45,7 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab] = useState("all")
 
   const supabase = useMemo(() => createClient(), [])
   const { toast } = useToast()
@@ -52,14 +54,16 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select(`
+        .select(
+          `
           *,
           customers (name, phone),
           order_items (
             *,
             menu_items (name, price)
           )
-        `)
+        `
+        )
         .eq("restaurant_id", restaurant.id)
         .order("created_at", { ascending: false })
 
@@ -102,7 +106,9 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
             playNotificationSound()
             toast({
               title: "New Order!",
-              description: `Order #${payload.new.id.slice(0, 8)} from Table ${payload.new.table_number}`,
+              description: `Order #${payload.new.id.slice(0, 8)} from Table ${
+                payload.new.table_number
+              }`,
               duration: 5000,
             })
             // Reload orders to get complete data with relations
@@ -111,14 +117,16 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
             try {
               const { data: updatedOrder, error } = await supabase
                 .from("orders")
-                .select(`
+                .select(
+                  `
                   *,
                   customers (name, phone),
                   order_items (
                     *,
                     menu_items (name, price)
                   )
-                `)
+                `
+                )
                 .eq("id", payload.new.id)
                 .single()
 
@@ -126,7 +134,7 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
 
               if (updatedOrder) {
                 setOrders((prevOrders) =>
-                  prevOrders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
+                  prevOrders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order))
                 )
               }
             } catch (error) {
@@ -138,7 +146,7 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
             // Remove deleted order
             setOrders((prevOrders) => prevOrders.filter((order) => order.id !== payload.old.id))
           }
-        },
+        }
       )
       .subscribe()
 
@@ -169,7 +177,7 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
     setUpdatingOrders((prev) => new Set(prev).add(orderId))
 
     setOrders((prevOrders) =>
-      prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
+      prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
     )
 
     try {
@@ -249,6 +257,14 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
     }
   }
 
+  const filteredOrders = useMemo(() => {
+    const activeOrders = orders.filter((o) => o.status !== "completed" && o.status !== "cancelled")
+    if (activeTab === "all") {
+      return activeOrders
+    }
+    return activeOrders.filter((order) => order.status === activeTab)
+  }, [orders, activeTab])
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -269,10 +285,54 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
   }
 
   const orderStats = [
-    { label: "Pending", count: orders.filter((o) => o.status === "pending").length, color: "amber" },
-    { label: "Preparing", count: orders.filter((o) => o.status === "preparing").length, color: "orange" },
-    { label: "Ready", count: orders.filter((o) => o.status === "ready").length, color: "emerald" },
-    { label: "Completed", count: orders.filter((o) => o.status === "completed").length, color: "gray" },
+    {
+      label: "Pending",
+      count: orders.filter((o) => o.status === "pending").length,
+      color: "amber",
+    },
+    {
+      label: "Preparing",
+      count: orders.filter((o) => o.status === "preparing").length,
+      color: "orange",
+    },
+    {
+      label: "Ready",
+      count: orders.filter((o) => o.status === "ready").length,
+      color: "emerald",
+    },
+    {
+      label: "Completed",
+      count: orders.filter((o) => o.status === "completed").length,
+      color: "gray",
+    },
+  ]
+
+  const TABS = [
+    {
+      value: "all",
+      label: "All",
+      count: orders.filter((o) => o.status !== "completed" && o.status !== "cancelled").length,
+    },
+    {
+      value: "pending",
+      label: "Pending",
+      count: orders.filter((o) => o.status === "pending").length,
+    },
+    {
+      value: "confirmed",
+      label: "Confirmed",
+      count: orders.filter((o) => o.status === "confirmed").length,
+    },
+    {
+      value: "preparing",
+      label: "Preparing",
+      count: orders.filter((o) => o.status === "preparing").length,
+    },
+    {
+      value: "ready",
+      label: "Ready",
+      count: orders.filter((o) => o.status === "ready").length,
+    },
   ]
 
   return (
@@ -309,105 +369,138 @@ export function RealTimeOrders({ restaurant }: RealTimeOrdersProps) {
           <CardDescription>Orders update automatically as they come in</CardDescription>
         </CardHeader>
         <CardContent>
-          {orders.length > 0 ? (
-            <div className="space-y-4">
-              {orders.map((order) => {
-                const nextAction = getNextStatusAction(order.status)
-                const isUpdating = updatingOrders.has(order.id)
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              {TABS.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} disabled={tab.count === 0}>
+                  {tab.label}
+                  <Badge variant="secondary" className="ml-2">
+                    {tab.count}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <TabsContent value={activeTab}>
+              {filteredOrders.length > 0 ? (
+                <div className="space-y-4 mt-4">
+                  {filteredOrders.map((order) => {
+                    const nextAction = getNextStatusAction(order.status)
+                    const isUpdating = updatingOrders.has(order.id)
 
-                return (
-                  <div
-                    key={order.id}
-                    className={`border rounded-lg p-6 hover:shadow-sm transition-all ${
-                      order.status === "pending" ? "border-amber-300 bg-amber-50" : ""
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">Order #{order.id.slice(0, 8)}</h3>
-                          <Badge className={`${getStatusColor(order.status)} flex items-center space-x-1`}>
-                            {getStatusIcon(order.status)}
-                            <span className="capitalize">{order.status}</span>
-                          </Badge>
-                          {order.status === "pending" && (
-                            <Badge variant="outline" className="text-red-600 border-red-600 animate-pulse">
-                              New!
-                            </Badge>
+                    return (
+                      <div
+                        key={order.id}
+                        className={`border rounded-lg p-6 hover:shadow-sm transition-all ${
+                          order.status === "pending" ? "border-amber-300 bg-amber-50" : ""
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h3 className="font-semibold text-gray-900">
+                                Order #{order.id.slice(0, 8)}
+                              </h3>
+                              <Badge
+                                className={`${getStatusColor(order.status)} flex items-center space-x-1`}
+                              >
+                                {getStatusIcon(order.status)}
+                                <span className="capitalize">{order.status}</span>
+                              </Badge>
+                              {order.status === "pending" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-red-600 border-red-600 animate-pulse"
+                                >
+                                  New!
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <p>Customer: {order.customers?.name || "Guest"}</p>
+                              <p>Table: {order.table_number}</p>
+                              <p>Phone: {order.customers?.phone || "N/A"}</p>
+                              <p>Time: {new Date(order.created_at).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-gray-900">
+                              Rs. {order.total_amount}
+                            </p>
+                            {order.loyalty_points_earned > 0 && (
+                              <p className="text-sm text-green-600">
+                                +{order.loyalty_points_earned} points earned
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Order Items */}
+                        <div className="border-t pt-4">
+                          <h4 className="font-medium text-gray-900 mb-3">Order Items</h4>
+                          <div className="space-y-2">
+                            {order.order_items?.map((item) => (
+                              <div key={item.id} className="flex justify-between items-center text-sm">
+                                <span>
+                                  {item.quantity}x {item.menu_items?.name}
+                                </span>
+                                <span>Rs. {item.total_price}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {order.special_instructions && (
+                          <div className="border-t pt-4 mt-4">
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Special Instructions
+                            </h4>
+                            <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md">
+                              {order.special_instructions}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex space-x-2 mt-4 pt-4 border-t">
+                          {nextAction && (
+                            <Button
+                              onClick={() => updateOrderStatus(order.id, nextAction.status)}
+                              disabled={isUpdating}
+                              className={nextAction.color}
+                            >
+                              {isUpdating ? "Updating..." : nextAction.label}
+                            </Button>
+                          )}
+                          {order.status !== "cancelled" && order.status !== "completed" && (
+                            <Button
+                              onClick={() => updateOrderStatus(order.id, "cancelled")}
+                              disabled={isUpdating}
+                              variant="outline"
+                              className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                            >
+                              Cancel Order
+                            </Button>
                           )}
                         </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <p>Customer: {order.customers?.name || "Guest"}</p>
-                          <p>Table: {order.table_number}</p>
-                          <p>Phone: {order.customers?.phone || "N/A"}</p>
-                          <p>Time: {new Date(order.created_at).toLocaleString()}</p>
-                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-gray-900">Rs. {order.total_amount}</p>
-                        {order.loyalty_points_earned > 0 && (
-                          <p className="text-sm text-green-600">+{order.loyalty_points_earned} points earned</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Order Items */}
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium text-gray-900 mb-3">Order Items</h4>
-                      <div className="space-y-2">
-                        {order.order_items?.map((item) => (
-                          <div key={item.id} className="flex justify-between items-center text-sm">
-                            <span>
-                              {item.quantity}x {item.menu_items?.name}
-                            </span>
-                            <span>Rs. {item.total_price}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {order.special_instructions && (
-                      <div className="border-t pt-4 mt-4">
-                        <h4 className="font-medium text-gray-900 mb-2">Special Instructions</h4>
-                        <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md">
-                          {order.special_instructions}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2 mt-4 pt-4 border-t">
-                      {nextAction && (
-                        <Button
-                          onClick={() => updateOrderStatus(order.id, nextAction.status)}
-                          disabled={isUpdating}
-                          className={nextAction.color}
-                        >
-                          {isUpdating ? "Updating..." : nextAction.label}
-                        </Button>
-                      )}
-                      {order.status !== "cancelled" && order.status !== "completed" && (
-                        <Button
-                          onClick={() => updateOrderStatus(order.id, "cancelled")}
-                          disabled={isUpdating}
-                          variant="outline"
-                          className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
-                        >
-                          Cancel Order
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
-              <p className="text-sm">Orders from customers will appear here in real-time</p>
-            </div>
-          )}
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No {activeTab === "all" ? "" : activeTab} orders
+                  </h3>
+                  <p className="text-sm">
+                    {activeTab === "all"
+                      ? "Live orders will appear here."
+                      : `Orders with status '${activeTab}' will appear here.`}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </>

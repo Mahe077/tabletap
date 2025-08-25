@@ -31,7 +31,7 @@ export default function NewCategoryPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
+      const supabase = await createClient()
 
       // Get user's restaurant
       const {

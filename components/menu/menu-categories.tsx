@@ -19,7 +19,7 @@ export function MenuCategories({ categories, selectedCategory, onCategorySelect 
     <div className="mb-6">
       <div className="flex space-x-2 overflow-x-auto pb-2">
         <Button
-          variant={selectedCategory === null ? "default" : "outline"}
+          variant={selectedCategory === null ? "destructive" : "outline"}
           onClick={() => onCategorySelect(null)}
           className="whitespace-nowrap bg-transparent"
         >
@@ -28,7 +28,7 @@ export function MenuCategories({ categories, selectedCategory, onCategorySelect 
         {categories.map((category) => (
           <Button
             key={category.id}
-            variant={selectedCategory === category.id ? "default" : "outline"}
+            variant={selectedCategory === category.id ? "destructive" : "outline"}
             onClick={() => onCategorySelect(category.id)}
             className="whitespace-nowrap bg-transparent"
           >

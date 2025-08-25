@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { X, Clock, CheckCircle, ChefHat, Package, Download, Printer } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface Order {
   id: string
@@ -88,7 +89,15 @@ export function CustomerOrderTracking({
 
       if (ordersError) throw ordersError
 
-      setOrders(ordersData || [])
+      setOrders(
+        (ordersData || []).map((order: any) => ({
+          ...order,
+          order_items: (order.order_items || []).map((item: any) => ({
+            ...item,
+            menu_items: Array.isArray(item.menu_items) ? item.menu_items[0] : item.menu_items,
+          })),
+        }))
+      )
 
       // Set up real-time subscription for order status updates
       const subscription = supabase
@@ -233,7 +242,7 @@ Thank you for your order!
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
           <CardHeader>
@@ -263,59 +272,79 @@ Thank you for your order!
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">{error}</div>
             )}
 
-            {orders.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="font-medium">Your Recent Orders</h3>
-                {orders.map((order) => (
-                  <Card key={order.id} className="border">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
-                          <p className="text-sm text-gray-600">
-                            Table {order.table_number} • {new Date(order.created_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge className={`${getStatusColor(order.status)} flex items-center space-x-1`}>
-                            {getStatusIcon(order.status)}
-                            <span className="capitalize">{order.status}</span>
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 mb-3">
-                        {order.order_items.map((item, index) => (
-                          <div key={index} className="flex justify-between text-sm">
-                            <span>
-                              {item.quantity}x {item.menu_items.name}
-                            </span>
-                            <span>Rs. {(item.unit_price * item.quantity).toFixed(2)}</span>
+            <Tabs defaultValue="orders" className="w-full">
+              <TabsList>
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="loyalty">Loyalty</TabsTrigger>
+              </TabsList>
+              <TabsContent value="orders">
+                {orders.length > 0 ? (
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Your Recent Orders</h3>
+                    {orders.map((order) => (
+                      <Card key={order.id} className="border">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
+                              <p className="text-sm text-gray-600">
+                                Table {order.table_number} • {new Date(order.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge className={`${getStatusColor(order.status)} flex items-center space-x-1`}>
+                                {getStatusIcon(order.status)}
+                                <span className="capitalize">{order.status}</span>
+                              </Badge>
+                            </div>
                           </div>
-                        ))}
-                      </div>
 
-                      <div className="flex justify-between items-center pt-2 border-t">
-                        <div>
-                          <p className="font-medium">Total: Rs. {order.total_amount.toFixed(2)}</p>
-                          {order.loyalty_points_earned > 0 && (
-                            <p className="text-sm text-green-600">+{order.loyalty_points_earned} points earned</p>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => downloadReceipt(order)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => printReceipt(order)}>
-                            <Printer className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                          <div className="space-y-2 mb-3">
+                            {order.order_items.map((item, index) => (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span>
+                                  {item.quantity}x {item.menu_items.name}
+                                </span>
+                                <span>Rs. {(item.unit_price * item.quantity).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <div>
+                              <p className="font-medium">Total: Rs. {order.total_amount.toFixed(2)}</p>
+                              {order.loyalty_points_earned > 0 && (
+                                <p className="text-sm text-green-600">+{order.loyalty_points_earned} points earned</p>
+                              )}
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => downloadReceipt(order)}>
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => printReceipt(order)}>
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500">No orders found.</div>
+                )}
+              </TabsContent>
+              <TabsContent value="loyalty">
+                <div className="text-center text-gray-500 py-8">
+                  {/* Placeholder for loyalty info, can be replaced with actual content */}
+                  <p className="text-lg font-medium mb-2">Loyalty Points</p>
+                  <p className="text-4xl font-bold text-green-600">
+                    {orders.reduce((acc, order) => acc + (order.loyalty_points_earned || 0), 0)}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">Total points earned from your recent orders.</p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

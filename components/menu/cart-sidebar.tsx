@@ -36,7 +36,7 @@ export function CartSidebar({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-20 z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
 
       {/* Sidebar */}
       <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-xl overflow-hidden flex flex-col">
