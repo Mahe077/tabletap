@@ -167,7 +167,7 @@ export function OrderModal({
           loyalty_points_used: pointsToUse,
           special_instructions: specialInstructions || null,
         })
-        .select()
+        .select('id')
         .single()
 
       if (orderError) throw orderError
@@ -305,6 +305,7 @@ export function OrderModal({
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="+94 77 123 4567"
+                      required
                     />
                     {existingCustomer && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
