@@ -191,6 +191,30 @@ export function OrderModal({
     } catch (error) {
       console.error("Error placing order:", error)
       setError(error instanceof Error ? error.message : "Failed to place order")
+
+      // Send error to server-side logging endpoint
+      try {
+        await fetch('/api/log', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            level: 'error',
+            message: 'Order placement failed',
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString(),
+            // Add any other relevant context here
+            cart: cart,
+            restaurantId: restaurant.id,
+            tableNumber: tableNumber,
+            customerPhone: customerPhone,
+          }),
+        });
+      } catch (logError) {
+        console.error('Failed to send error to logging endpoint:', logError);
+      }
     } finally {
       setIsSubmitting(false)
     }

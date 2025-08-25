@@ -4,7 +4,7 @@ returns numeric as $$
 declare
   total_revenue numeric;
 begin
-  select coalesce(sum(total), 0)
+  select coalesce(sum(total_amount), 0)
   into total_revenue
   from orders
   where restaurant_id = restaurant_id_param
@@ -18,7 +18,7 @@ returns numeric as $$
 declare
   total_revenue numeric;
 begin
-  select coalesce(sum(total), 0)
+  select coalesce(sum(total_amount), 0)
   into total_revenue
   from orders
   where restaurant_id = restaurant_id_param
@@ -32,7 +32,7 @@ returns numeric as $$
 declare
   total_revenue numeric;
 begin
-  select coalesce(sum(total), 0)
+  select coalesce(sum(total_amount), 0)
   into total_revenue
   from orders
   where restaurant_id = restaurant_id_param;

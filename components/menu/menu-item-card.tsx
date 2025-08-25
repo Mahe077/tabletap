@@ -6,27 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Minus, Clock, Leaf, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-
-export interface MenuItem {
-  id: string
-  name: string
-  description: string | null
-  price: number
-  image_url: string | null
-  category_id: string | null
-  dietary_info: string[] | null
-  allergens: string[] | null
-  preparation_time: number | null
-  menu_categories: { name: string } | null
-  // New nutrition fields
-  calories: number | null
-  protein: number | null
-  carbs: number | null
-  fat: number | null
-  fiber: number | null
-  sugar: number | null
-  sodium: number | null
-}
+import { MenuItem } from "./menu-interface"
 
 interface MenuItemCardProps {
   item: MenuItem
@@ -65,7 +45,7 @@ export function MenuItemCard({
     item.calories || item.protein || item.carbs || item.fat || item.fiber || item.sugar || item.sodium
 
   return (
-    <Card key={item.id} className="menu-item-card overflow-hidden hover:shadow-lg transition-shadow">
+    <Card key={item.id} className="menu-item-card overflow-hidden hover:shadow-lg transition-shadow py-0">
       <CardContent className="p-0">
         <div className="relative">
           <div className="aspect-[4/3] w-full">

@@ -72,9 +72,16 @@ export function MenuPageContent({ categories, menuItems, totalCount, page, pageS
       </Suspense>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Menu Items</CardTitle>
-          <CardDescription>All your menu items across categories</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-2xl font-bold">Menu Items</CardTitle>
+            <CardDescription>All your menu items across categories</CardDescription>
+          </div>
+          <Button asChild variant="outline" disabled={true} hidden={true}>
+            <Link href="/dashboard/menu/items">
+              Manage Menu Items
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent>
           <Suspense fallback={<MenuItemsSkeleton />}>

@@ -1,28 +1,7 @@
 "use client"
 
-import { MenuItem, MenuItemCard } from "./menu-item-card"
-
-// interface MenuItem {
-//   id: string
-//   name: string
-//   description: string | null
-//   price: number
-//   category_id: string | null
-//   preparation_time: number | null
-//   dietary_info: string[] | null
-//   allergens: string[] | null
-//   is_available: boolean
-//   is_featured: boolean
-//   image_url: string | null
-//   calories: string;
-//   protein: string;
-//   carbs: string;
-//   fat: string;
-//   fiber: string;
-//   sugar: string;
-//   sodium: string;
-//   menu_categories: { name: string } | null
-// }
+import { MenuItem } from "./menu-interface";
+import { MenuItemCard } from "./menu-item-card"
 
 interface MenuItemsProps {
   items: MenuItem[]
