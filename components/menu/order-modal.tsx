@@ -190,7 +190,24 @@ export function OrderModal({
       setOrderPlaced(true)
     } catch (error) {
       console.error("Error placing order:", error)
-      setError(error instanceof Error ? error.message : "Failed to place order")
+
+      let errorMessage = "Failed to place order";
+      let errorStack = undefined;
+      let errorDetails: any = {};
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        errorStack = error.stack;
+        errorDetails = { name: error.name, message: error.message, stack: error.stack };
+      } else if (typeof error === 'object' && error !== null) {
+        // Attempt to capture more details from Supabase errors or other objects
+        errorMessage = (error as any).message || String(error);
+        errorDetails = error;
+      } else {
+        errorMessage = String(error);
+      }
+
+      setError(errorMessage);
 
       // Send error to server-side logging endpoint
       try {
@@ -201,12 +218,12 @@ export function OrderModal({
           },
           body: JSON.stringify({
             level: 'error',
-            message: 'Order placement failed',
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
+            message: errorMessage,
+            error: errorDetails, // Send the full error object/details
+            stack: errorStack, // Send the stack if available
             timestamp: new Date().toISOString(),
             // Add any other relevant context here
-            cart: cart,
+            cart: cart.map(item => ({ id: item.id, quantity: item.quantity, price: item.price })), // Sanitize cart for logging
             restaurantId: restaurant.id,
             tableNumber: tableNumber,
             customerPhone: customerPhone,
