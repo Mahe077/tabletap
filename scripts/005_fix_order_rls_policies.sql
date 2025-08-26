@@ -4,9 +4,13 @@ DROP POLICY IF EXISTS "Restaurant owners can view their restaurant orders" ON or
 DROP POLICY IF EXISTS "Restaurant owners can update their restaurant orders" ON orders;
 
 -- Create new, more explicit policies for orders
--- Allow anyone (including anonymous users) to insert orders
-CREATE POLICY "Anyone can create orders" ON orders
-  FOR INSERT 
+-- Drop the old permissive insert policy for orders
+DROP POLICY IF EXISTS "Anyone can create orders" ON orders;
+
+-- Allow anonymous users to insert orders
+CREATE POLICY "Anon can create orders" ON orders
+  FOR INSERT
+  TO anon
   WITH CHECK (true);
 
 -- Allow restaurant owners to view orders for their restaurants
