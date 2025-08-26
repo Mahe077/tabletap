@@ -64,7 +64,13 @@ interface MenuInterfaceProps {
 
 export function MenuInterface({ restaurant, categories, menuItems, tableNumber }: MenuInterfaceProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window !== 'undefined') { // Ensure localStorage is available
+      const savedCart = localStorage.getItem(`cart_${restaurant.id}`);
+      return savedCart ? JSON.parse(savedCart) : [];
+    }
+    return [];
+  });
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
   const [showOrderTracking, setShowOrderTracking] = useState(false)
@@ -76,6 +82,12 @@ export function MenuInterface({ restaurant, categories, menuItems, tableNumber }
       setCustomerPhone(savedPhone)
     }
   }, [restaurant.id])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') { // Ensure localStorage is available
+      localStorage.setItem(`cart_${restaurant.id}`, JSON.stringify(cart));
+    }
+  }, [cart, restaurant.id]); // Save cart whenever it changes
 
   const addToCart = (item: MenuItem, quantity = 1, specialInstructions?: string) => {
     setCart((prevCart) => {

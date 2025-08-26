@@ -87,6 +87,7 @@ export function CustomerOrderTracking({
           )
         `
         )
+        .eq("customer_id", customer.id) // Explicitly filter by customer_id
         .eq("restaurant_id", restaurantId) // Keep restaurant_id filter
         .order("created_at", { ascending: false })
         .limit(10)
@@ -191,7 +192,7 @@ Total: Rs. ${order.total_amount.toFixed(2)}
 ${order.loyalty_points_earned > 0 ? `Points Earned: ${order.loyalty_points_earned}` : ""}
 
 Thank you for your order!
-    `.trim()
+    `
 
     const blob = new Blob([receiptContent], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
