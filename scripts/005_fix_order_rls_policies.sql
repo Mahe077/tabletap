@@ -31,6 +31,19 @@ CREATE POLICY "Restaurant owners can update their orders" ON orders
     )
   );
 
+-- Allow customers to view their own orders based on phone number
+CREATE POLICY "Customer can view their own orders"
+ON orders
+FOR SELECT
+TO public
+USING (
+  customer_id IN (
+    SELECT id 
+    FROM customers 
+    WHERE phone = current_setting('request.customer_phone', true)::text
+  )
+);
+
 -- Also fix order_items policies to be more explicit
 DROP POLICY IF EXISTS "Public can create order items" ON order_items;
 DROP POLICY IF EXISTS "Restaurant owners can view their order items" ON order_items;

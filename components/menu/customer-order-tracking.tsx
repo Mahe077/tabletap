@@ -54,19 +54,23 @@ export function CustomerOrderTracking({
     setError(null)
 
     try {
-      // First get customer ID
-      const { data: customer } = await supabase.from("customers").select("id").eq("phone", customerPhone).single()
+      // First get customer ID for real-time subscription and potential error messages
+      const { data: customer, error: customerError } = await supabase.from("customers").select("id").eq("phone", customerPhone).single()
 
-      if (!customer) {
-        setError("No orders found for this phone number")
+      if (customerError || !customer) {
+        setError("No orders found for this phone number or customer not found.")
         setOrders([])
         return
       }
 
-      // Get orders with items
+      // Set the customer phone in the session for RLS
+      await supabase.rpc('set_config', { key: 'request.customer_phone', value: customerPhone });
+
+      // Get orders with items (RLS will filter by customer_id)
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select(`
+        .select(
+          `
           id,
           table_number,
           status,
@@ -81,9 +85,9 @@ export function CustomerOrderTracking({
               name
             )
           )
-        `)
-        .eq("customer_id", customer.id)
-        .eq("restaurant_id", restaurantId)
+        `
+        )
+        .eq("restaurant_id", restaurantId) // Keep restaurant_id filter
         .order("created_at", { ascending: false })
         .limit(10)
 
@@ -99,7 +103,7 @@ export function CustomerOrderTracking({
         }))
       )
 
-      // Set up real-time subscription for order status updates
+      // Set up real-time subscription for order status updates using customer.id
       const subscription = supabase
         .channel(`customer_orders_${customer.id}`)
         .on(
@@ -226,14 +230,16 @@ Thank you for your order!
 
     const printWindow = window.open("", "_blank")
     if (printWindow) {
-      printWindow.document.write(`
+      printWindow.document.write(
+        `
         <html>
           <head><title>Receipt</title></head>
           <body onload="window.print(); window.close();">
             ${receiptContent}
           </body>
         </html>
-      `)
+      `,
+      )
       printWindow.document.close()
     }
   }
